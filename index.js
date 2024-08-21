@@ -7,7 +7,15 @@
  * a badge is added to messages that are sent to iOS devices.
  */
 const https = require('https');
+const express = require('express');
+const cors = require('cors');
+const dayjs = require('dayjs');
+const { v4 } = require('uuid');
+
 const { google } = require('googleapis');
+const app = express();
+app.use(cors({credentials: true, origin: true}));
+app.use(express.json());
 
 const CLIENT_ID=
     //"e3t8w5mwvPjdcLZWMmxqgu:APA91bHuXx4H4O0GZzpIQV-HYyzCP6xsLs6OhaltZGLCJQfKQ_k16E27CZhbPZvKhNcXdybphQz-QJ8hvX83LF-5i2Qa54qGVz2igwnOOjlODJoKO6gR3e83ajkt9WOI5yS73tVhKP7t"
@@ -143,21 +151,37 @@ function buildCommonMessage() {
         // }
 }
 
-const message = process.argv[2];
-if (message && message == 'common-message') {
-    const commonMessage = buildCommonMessage();
-    console.log('FCM request body for message using common notification object:');
-    console.log(JSON.stringify(commonMessage, null, 2));
-    sendFcmMessage(buildCommonMessage());
-    //setTimeout(() => {sendFcmMessage(buildCommonMessage());}, 10000);
+// const message = process.argv[2];
+// if (message && message == 'common-message') {
+//     const commonMessage = buildCommonMessage();
+//     console.log('FCM request body for message using common notification object:');
+//     console.log(JSON.stringify(commonMessage, null, 2));
+//     sendFcmMessage(buildCommonMessage());
+//     //setTimeout(() => {sendFcmMessage(buildCommonMessage());}, 10000);
+//
+// } else if (message && message == 'override-message') {
+//     const overrideMessage = buildOverrideMessage();
+//     console.log('FCM request body for override message:');
+//     console.log(JSON.stringify(overrideMessage, null, 2));
+//     sendFcmMessage(buildOverrideMessage());
+// } else {
+//     console.log('Invalid command. Please use one of the following:\n'
+//         + 'node index.js common-message\n'
+//         + 'node index.js override-message');
+// }
 
-} else if (message && message == 'override-message') {
-    const overrideMessage = buildOverrideMessage();
-    console.log('FCM request body for override message:');
-    console.log(JSON.stringify(overrideMessage, null, 2));
-    sendFcmMessage(buildOverrideMessage());
-} else {
-    console.log('Invalid command. Please use one of the following:\n'
-        + 'node index.js common-message\n'
-        + 'node index.js override-message');
-}
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+
+app.post("/api/chats/messages", (req, res, next) => {
+    const message = req.body.message;
+    
+    res.json({
+        "id":v4(),
+        "from":"TSROLD01",
+        "message":message,
+        "date": dayjs().format("YYYY-MM-DD HH:mm:ss"), //"2024-05-16 15:36:27",
+        "attachments":[]
+    });
+});

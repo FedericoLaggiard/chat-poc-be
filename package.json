@@ -10,7 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
+    "express": "^4.19.2",
     "firebase-admin": "^12.0.0",
-    "googleapis": "^131.0.0"
+    "googleapis": "^131.0.0",
+    "uuid": "^10.0.0"
   }
 }
