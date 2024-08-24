@@ -11,19 +11,21 @@ const express = require('express');
 const cors = require('cors');
 const dayjs = require('dayjs');
 const { v4 } = require('uuid');
-
+const querystring = require('querystring');
 const { google } = require('googleapis');
+
 const app = express();
 app.use(cors({credentials: true, origin: true}));
 app.use(express.json());
+
+const members = [];
 
 const CLIENT_ID=
     //"e3t8w5mwvPjdcLZWMmxqgu:APA91bHuXx4H4O0GZzpIQV-HYyzCP6xsLs6OhaltZGLCJQfKQ_k16E27CZhbPZvKhNcXdybphQz-QJ8hvX83LF-5i2Qa54qGVz2igwnOOjlODJoKO6gR3e83ajkt9WOI5yS73tVhKP7t"
     "cL8bKQ6HRyuoNO2gAESaUl:APA91bE9LEa2y2SFnu_lOT5DLFuUkGX3vNBn96Nn37mHhOblSn1JLDcxoAz7Bg8_GLU6r2Ivf-yuZK77394I7rvJVdSOGlnptsfh2n1D8I5IW4NCM7bzWbxToTogR5OzT7Flx28XV6pQ"
 ;
-//test
-//const PROJECT_ID = 'testwebpush-37319';
-const PROJECT_ID = 'rol-app-51596';
+const PROJECT_ID = 'testwebpush-37319';
+
 const HOST = 'fcm.googleapis.com';
 const PATH = '/v1/projects/' + PROJECT_ID + '/messages:send';
 const MESSAGING_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
@@ -35,7 +37,7 @@ const SCOPES = [MESSAGING_SCOPE];
 // [START retrieve_access_token]
 function getAccessToken() {
     return new Promise(function(resolve, reject) {
-        const key = require('./rol_service.json');
+        const key = require('./firebase-config.json');
         const jwtClient = new google.auth.JWT(
             key.client_email,
             null,
@@ -124,31 +126,22 @@ function buildOverrideMessage() {
  * common parts of a notification message that will be sent
  * to any app instance subscribed to the news topic.
  */
-function buildCommonMessage() {
+function buildCommonMessage(destinationToken, content) {
     return {
         "message": {
-            "token": CLIENT_ID,
-            "data": {
-              "type": "CLAIM_UPDATE"
-            },
+            "token": destinationToken,
+            "data": content,
             "notification": {
-                "title": "ROL 1 - Message chat",
-                "body": "You have received a new message in the chat of ROL 1"
+                "title": "Chat mesage",
+                "body": "You have received a new message in the chat"
             },
             "webpush": {
                 "fcm_options": {
-                    "link": "#/rol-open/1"
+                    "link": "http://localhost:5174/"
                 }
             }
         }
     }
-        // 'message': {
-        //     'topic': 'news',
-        //     'notification': {
-        //         'title': 'FCM Notification',
-        //         'body': 'Notification from FCM'
-        //     }
-        // }
 }
 
 // const message = process.argv[2];
@@ -176,12 +169,31 @@ app.listen(3000, () => {
 
 app.post("/api/chats/messages", (req, res, next) => {
     const message = req.body.message;
+    const firebaseToken = req.body.firebaseToken;
+    console.log("MESSAGE", message, firebaseToken);
+
+    const content = {
+        "id": v4(),
+        "isFrom": firebaseToken,
+        "message": message,
+        "date": dayjs().format("YYYY-MM-DD HH:mm:ss"),
+    }
     
-    res.json({
-        "id":v4(),
-        "from":"TSROLD01",
-        "message":message,
-        "date": dayjs().format("YYYY-MM-DD HH:mm:ss"), //"2024-05-16 15:36:27",
-        "attachments":[]
-    });
+    const sendTo = members.filter(x => x != firebaseToken);
+    if(sendTo.length > 0){
+        for(let i=0;i<sendTo.length;i++) {
+            const fcmMessage = buildCommonMessage(sendTo[0], content);
+            sendFcmMessage(fcmMessage);
+        }
+    }
+
+    res.json(content);
+});
+
+app.post("/api/notifications/register", (req,res,next) => {
+    console.log("REGISTER ", req.query);
+    const fbkey = req.query["firebase-key"];
+    
+   if(!members.includes(fbkey)) members.push(fbkey);
+   res.json({"message": "ok"});
 });
